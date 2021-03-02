@@ -25,7 +25,16 @@ navigator.mediaDevices.getUserMedia({
 myPeer.on('open', id => {
     socket.emit('join', { roomId: ROOM_ID, userId: id })
 })
-
+myPeer.on('error', error => {
+    switch (error) {
+        case 'network':
+            return myPeer.reconnect()
+        case 'server-error':
+            return alert('An error ocurred with the server, please connect later.')
+        default:
+            return alert('Error undefined... We are in serious trouble ;)')
+    }
+})
 
 socket.on('user-disconnected', data => peers[data.userId] && peers[data.userId].close())
 

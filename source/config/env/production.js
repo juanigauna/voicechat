@@ -4,6 +4,7 @@ export default {
         secure: true,
         host: 'peer-server-noname.herokuapp.com',
         port: 443,
-        path: '/server'
+        path: '/server',
+        debug: 3
     }
 }
