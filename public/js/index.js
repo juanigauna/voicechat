@@ -17,7 +17,7 @@ navigator.mediaDevices.getUserMedia({
         call.on('stream', userAudioStream => {
             addAudioStream(audio, userAudioStream)
         })
-        call.on('close', audio.remove())
+        call.on('close', () => audio.remove())
     })
     socket.on('user-connected', data => connectToNewUser(data.userId, stream))
 })
@@ -42,6 +42,6 @@ function connectToNewUser(userId, stream) {
     call.on('stream', userVideoStream => {
         addAudioStream(audio, userVideoStream)
     })
-    call.on('close', audio.remove())
+    call.on('close', () => audio.remove())
     peers[userId] = call
 }
