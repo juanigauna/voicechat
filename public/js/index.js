@@ -3,8 +3,8 @@ const myPeer = new Peer('', PEER_CONFIG)
 
 const peers = {}
 
-const myAudio = document.createElement('audio')
-myAudio.muted = true
+const myAudio = new Audio()
+myAudio.muted = false
 
 navigator.mediaDevices.getUserMedia({
     audio: true
@@ -15,7 +15,7 @@ navigator.mediaDevices.getUserMedia({
         myPeer.on('call', call => {
             console.log(call)
             call.answer(stream)
-            const audio = document.createElement('audio')
+            const audio = new Audio()
             call.on('stream', userAudioStream => {
                 addAudioStream(audio, userAudioStream)
                 createAudioState(stream, call.connectionId)
@@ -62,7 +62,7 @@ function addAudioStream(audio, stream) {
     audio.addEventListener('loadedmetadata', () => {
         audio.play()
     })
-    document.getElementById('audio-recipent').appendChild(audio)
+    //document.getElementById('audio-recipent').appendChild(audio)
 }
 function connectToNewUser(userId, stream) {
     const call = myPeer.call(userId, stream)
