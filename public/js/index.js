@@ -11,7 +11,7 @@ navigator.mediaDevices.getUserMedia({
 })
     .then(stream => {
         addAudioStream(myAudio, stream)
-        // startAudioBehavior(stream, 'me')
+        startAudioBehavior(stream, 'me')
         myPeer.on('call', call => {
             call.answer(stream)
             const audio = document.createElement('audio')
@@ -95,5 +95,5 @@ function startAudioBehavior(stream, userId) {
                 document.getElementById('audio-status-' + userId).classList.remove('talking')
             }
         }
-    }, 200)
+    }, 100)
 }
