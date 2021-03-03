@@ -24,7 +24,6 @@ navigator.mediaDevices.getUserMedia({
         })
         socket.on('user-connected', data => {
             connectToNewUser(data.userId, stream)
-            createAudioState(stream, data.userId, true)
         })
     })
 
