@@ -18,7 +18,7 @@ navigator.mediaDevices.getUserMedia({
             const audio = document.createElement('audio')
             call.on('stream', userAudioStream => {
                 //addAudioStream(audio, userAudioStream)
-                createAudioState(stream, call.connectionId, true)
+                createAudioState(userAudioStream, call.connectionId, true)
             })
             call.on('close', () => audio.remove())
         })
