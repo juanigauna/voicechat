@@ -11,7 +11,7 @@ navigator.mediaDevices.getUserMedia({
 })
     .then(stream => {
         addAudioStream(myAudio, stream)
-        startAudioBehavior(stream)
+        // startAudioBehavior(stream, 'me')
         myPeer.on('call', call => {
             call.answer(stream)
             const audio = document.createElement('audio')
@@ -20,7 +20,16 @@ navigator.mediaDevices.getUserMedia({
             })
             call.on('close', () => audio.remove())
         })
-        socket.on('user-connected', data => connectToNewUser(data.userId, stream))
+        socket.on('user-connected', data => {
+            connectToNewUser(data.userId, stream)
+            const audioStatus = document.createElement('div')
+            audioStatus.id = `audio-status-${data.userId}`
+            audioStatus.className = `me`
+            const icon = document.createElement('p')
+            icon.id = `icon-${data.userId}`
+            audioStatus.appendChild(icon)
+            document.getElementById('client-list').appendChild(audioStatus)
+        })
     })
 
 myPeer.on('open', id => {
@@ -50,13 +59,14 @@ function addAudioStream(audio, stream) {
 function connectToNewUser(userId, stream) {
     const call = myPeer.call(userId, stream)
     const audio = document.createElement('audio')
-    call.on('stream', userVideoStream => {
-        addAudioStream(audio, userVideoStream)
+    call.on('stream', userAudioStream => {
+        addAudioStream(audio, userAudioStream)
+        startAudioBehavior(userAudioStream, userId)
     })
     call.on('close', () => audio.remove())
     peers[userId] = call
 }
-function audioBehavior(stream) {
+function audioContext(stream) {
     const context = new AudioContext()
     const analyser = context.createAnalyser()
     const source = context.createMediaStreamSource(stream)
@@ -70,21 +80,20 @@ function audioAnalyser(analyser) {
     analyser.getByteFrequencyData(fbc_array);
     return fbc_array[0] / 100
 }
-function startAudioBehavior(stream) {
-    const audio = audioBehavior(stream)
+function startAudioBehavior(stream, userId) {
+    const audio = audioContext(stream)
     connectSourceToAnalyser(audio.source, audio.analyser)
-    myAudio.addEventListener('timeupdate', () => {
+    setInterval(() => {
         let frecuency = audioAnalyser(audio.analyser)
-        document.getElementById('frec').innerHTML = frecuency
         if (frecuency > .8) {
-            myAudio.muted = false
-            document.getElementById('audio-status').classList.add('talking')
+            document.getElementById('audio-status-' + userId).classList.add('talking')
+            document.getElementById('icon-' + userId).innerHTML = 'T'
         }
         if (frecuency < 0.8) {
-            myAudio.muted = true
-            if (document.getElementById('audio-status').classList.contains('talking')) {
-                document.getElementById('audio-status').classList.remove('talking')
+            document.getElementById('icon-' + userId).innerHTML = 'M'
+            if (document.getElementById('audio-status-' + userId).classList.contains('talking')) {
+                document.getElementById('audio-status-' + userId).classList.remove('talking')
             }
         }
-    })
+    }, 200)
 }
