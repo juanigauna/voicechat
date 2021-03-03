@@ -11,24 +11,20 @@ navigator.mediaDevices.getUserMedia({
 })
     .then(stream => {
         addAudioStream(myAudio, stream)
-        startAudioBehavior(stream, 'me')
+        createAudioState(stream, 'me')
         myPeer.on('call', call => {
+            console.log(call)
             call.answer(stream)
             const audio = document.createElement('audio')
             call.on('stream', userAudioStream => {
                 addAudioStream(audio, userAudioStream)
+                createAudioState(stream, call.connectionId)
             })
             call.on('close', () => audio.remove())
         })
         socket.on('user-connected', data => {
             connectToNewUser(data.userId, stream)
-            const audioStatus = document.createElement('div')
-            audioStatus.id = `audio-status-${data.userId}`
-            audioStatus.className = `me`
-            const icon = document.createElement('p')
-            icon.id = `icon-${data.userId}`
-            audioStatus.appendChild(icon)
-            document.getElementById('client-list').appendChild(audioStatus)
+            createAudioState(stream, data.userId)
         })
     })
 
@@ -51,7 +47,16 @@ socket.on('user-disconnected', data => {
     peers[data.userId] && peers[data.userId].close()
     document.getElementById(`audio-status-${data.userId}`).remove()
 })
-
+function createAudioState(stream, userId) {
+    const audioStatus = document.createElement('div')
+    audioStatus.id = `audio-status-${userId}`
+    audioStatus.className = `me`
+    const icon = document.createElement('p')
+    icon.id = `icon-${userId}`
+    audioStatus.appendChild(icon)
+    document.getElementById('client-list').appendChild(audioStatus)
+    startAudioBehavior(stream, userId)
+}
 function addAudioStream(audio, stream) {
     audio.srcObject = stream
     audio.addEventListener('loadedmetadata', () => {
