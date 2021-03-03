@@ -4,7 +4,7 @@ const myPeer = new Peer('', PEER_CONFIG)
 const peers = {}
 
 const myAudio = new Audio()
-myAudio.muted = false
+myAudio.muted = true
 
 navigator.mediaDevices.getUserMedia({
     audio: true
@@ -32,15 +32,12 @@ myPeer.on('open', id => {
     socket.emit('join', { roomId: ROOM_ID, userId: id })
 })
 myPeer.on('error', error => {
-    console.log(error)
-    switch (error) {
-        case 'network':
-            return myPeer.reconnect()
-        case 'server-error':
-            return alert('An error ocurred with the server, please connect later.')
-        default:
-            return alert('Error undefined... We are in serious trouble ;)')
-    }
+    socket.emit('error', error)
+    socket.on('error', error => {
+        const errorMessage = document.createElement('p')
+        errorMessage.innerHTML = `ERROR!: ${error}`
+        document.getElementById('error-logger').appendChild(error)
+    })
 })
 
 socket.on('user-disconnected', data => {
@@ -62,7 +59,6 @@ function addAudioStream(audio, stream) {
     audio.addEventListener('loadedmetadata', () => {
         audio.play()
     })
-    //document.getElementById('audio-recipent').appendChild(audio)
 }
 function connectToNewUser(userId, stream) {
     const call = myPeer.call(userId, stream)
