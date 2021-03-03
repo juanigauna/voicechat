@@ -11,10 +11,42 @@
         const ROOM_ID = "<%= roomId %>"
         const PEER_CONFIG = "<%= config %>"
     </script>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        .client-list {
+            display: flex;
+            flex-flow: row wrap;
+            padding: 13px;
+        }
+        .me {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            background-color: #ccc;
+            border: 2px solid transparent;
+            border-radius: 100%;
+        }
+        .me p {
+            color: #333;
+            font-weight: bold;
+        }
+        .talking {
+            border: 2px solid #2ed44a
+        }
+    </style>
 </head>
 <body>
-    <h3>Room voice</h3>
+    <h3>Voice chat</h3>
     <div id="audio-recipent"></div>
+    <div class="client-list">
+        <div id="audio-status" class="me">
+            <p id="frec"></p>
+        </div>
+    </div>
     <script src="/js/index.js"></script>
 </body>
 </html>

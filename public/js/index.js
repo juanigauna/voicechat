@@ -9,23 +9,25 @@ myAudio.muted = true
 navigator.mediaDevices.getUserMedia({
     audio: true
 })
-.then(stream => {
-    addAudioStream(myAudio, stream)
-    myPeer.on('call', call => {
-        call.answer(stream)
-        const audio = document.createElement('audio')
-        call.on('stream', userAudioStream => {
-            addAudioStream(audio, userAudioStream)
+    .then(stream => {
+        addAudioStream(myAudio, stream)
+        startAudioBehavior(stream)
+        myPeer.on('call', call => {
+            call.answer(stream)
+            const audio = document.createElement('audio')
+            call.on('stream', userAudioStream => {
+                addAudioStream(audio, userAudioStream)
+            })
+            call.on('close', () => audio.remove())
         })
-        call.on('close', () => audio.remove())
+        socket.on('user-connected', data => connectToNewUser(data.userId, stream))
     })
-    socket.on('user-connected', data => connectToNewUser(data.userId, stream))
-})
 
 myPeer.on('open', id => {
     socket.emit('join', { roomId: ROOM_ID, userId: id })
 })
 myPeer.on('error', error => {
+    console.log(error)
     switch (error) {
         case 'network':
             return myPeer.reconnect()
@@ -53,4 +55,36 @@ function connectToNewUser(userId, stream) {
     })
     call.on('close', () => audio.remove())
     peers[userId] = call
+}
+function audioBehavior(stream) {
+    const context = new AudioContext()
+    const analyser = context.createAnalyser()
+    const source = context.createMediaStreamSource(stream)
+    return { context, analyser, source }
+}
+function connectSourceToAnalyser(source, analyser) {
+    source.connect(analyser)
+}
+function audioAnalyser(analyser) {
+    const fbc_array = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(fbc_array);
+    return fbc_array[0] / 100
+}
+function startAudioBehavior(stream) {
+    const audio = audioBehavior(stream)
+    connectSourceToAnalyser(audio.source, audio.analyser)
+    myAudio.addEventListener('timeupdate', () => {
+        let frecuency = audioAnalyser(audio.analyser)
+        document.getElementById('frec').innerHTML = frecuency
+        if (frecuency > .8) {
+            myAudio.muted = false
+            document.getElementById('audio-status').classList.add('talking')
+        }
+        if (frecuency < 0.8) {
+            myAudio.muted = true
+            if (document.getElementById('audio-status').classList.contains('talking')) {
+                document.getElementById('audio-status').classList.remove('talking')
+            }
+        }
+    })
 }
