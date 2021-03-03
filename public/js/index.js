@@ -47,7 +47,10 @@ myPeer.on('error', error => {
     }
 })
 
-socket.on('user-disconnected', data => peers[data.userId] && peers[data.userId].close())
+socket.on('user-disconnected', data => {
+    peers[data.userId] && peers[data.userId].close()
+    document.getElementById(`audio-status-${data.userId}`).remove()
+})
 
 function addAudioStream(audio, stream) {
     audio.srcObject = stream
