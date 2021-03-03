@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "nodemon --exec babel-node .",
         "build": "npx babel source --out-dir lib",
-        "start": "npm run build && node ./lib/index.js"
+        "start": "node ./lib/index.js"
     },
     "keywords": [],
     "author": "",
