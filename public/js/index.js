@@ -36,8 +36,10 @@ myPeer.on('error', error => {
 })
 
 socket.on('user-disconnected', data => {
-    peers[data.userId] && peers[data.userId].close()
-    document.getElementById(`audio-status-${data.userId}`).remove()
+    if (peers[data.userId]) {
+        peers[data.userId].close()
+        document.getElementById(`audio-status-${data.userId}`).remove()
+    }
 })
 function createAudioState(stream, userId) {
     const audioStatus = document.createElement('div')
