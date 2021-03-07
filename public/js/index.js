@@ -26,6 +26,7 @@ function incomingCall(stream) {
             addAudioStream(audio, userAudioStream)
             socket.on('incoming-call', data => {
                 if (data.toId === me.userId) createAudioState(data.userId, data.name)
+                peers[data.userId] = call
             })
         })
         call.on('close', () => audio.remove())
@@ -40,7 +41,7 @@ function onUserConnected(stream) {
 async function init(name) {
     const stream = await getUserMedia()
     addAudioStream(myAudio, stream)
-    createAudioState(stream, name)
+    createAudioState('me', name)
     incomingCall(stream)
     onUserConnected(stream)
 }
@@ -49,6 +50,7 @@ myPeer.on('open', id => me = {...me, userId: id })
 
 socket.on('user-disconnected', data => {
     if (peers[data.userId]) {
+        console.log(data.userId)
         document.getElementById(`audio-status-${data.userId}`).remove()
         peers[data.userId].close()
     }
