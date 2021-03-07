@@ -1,4 +1,4 @@
-import VCAudio from './vcaudio.js'
+import getUserMedia from './usermedia.js'
 
 const socket = io()
 const myPeer = new Peer('', PEER_CONFIG)
@@ -8,32 +8,36 @@ const peers = {}
 const myAudio = document.createElement('audio')
 myAudio.muted = true
 
-navigator.mediaDevices.getUserMedia({
-    audio: true
-})
-    .then(stream => {
-        addAudioStream(myAudio, stream)
-        createAudioState(stream, 'me')
-        myPeer.on('call', call => {
-            call.answer(stream)
-            const audio = new Audio()
-            call.on('stream', userAudioStream => {
-                addAudioStream(audio, userAudioStream)
-                createAudioState(stream, call.connectionId)
-            })
-            call.on('close', () => audio.remove())
+function incomingCall(stream) {
+    myPeer.on('call', call => {
+        call.answer(stream)
+        const audio = document.createElement('audio')
+        call.on('stream', userAudioStream => {
+            addAudioStream(audio, userAudioStream)
+            createAudioState(stream, call.connectionId)
         })
-        socket.on('user-connected', data => {
-            connectToNewUser(data.userId, stream)
-            createAudioState(stream, data.userId)
-        })
+        call.on('close', () => audio.remove())
     })
+}
+function onUserConnected(stream) {
+    socket.on('user-connected', data => {
+        outgoingCall(data.userId, stream)
+        createAudioState(stream, data.userId)
+    })
+}
+async function init() {
+    const stream = await getUserMedia()
+    addAudioStream(myAudio, stream)
+    createAudioState(stream, 'me')
+    incomingCall(stream)
+    onUserConnected(stream)
+}
 
-myPeer.on('open', id => socket.emit('join', { roomId: ROOM_ID, userId: id }))
-myPeer.on('error', error => {
-    socket.emit('error', error)
-    socket.on('error', error => console.log('ERROR!', error))
+myPeer.on('open', async id => {
+    await init()
+    socket.emit('join', { roomId: ROOM_ID, userId: id })
 })
+
 
 socket.on('user-disconnected', data => {
     if (peers[data.userId]) {
@@ -50,17 +54,15 @@ function createAudioState(stream, userId) {
     icon.innerHTML = 'M'
     audioStatus.appendChild(icon)
     document.getElementById('client-list').appendChild(audioStatus)
-    // audioBehavior(stream, userId)
 }
 function addAudioStream(audio, stream, userId = 'me') {
     audio.srcObject = stream
     audio.addEventListener('loadedmetadata', () => {
         audio.play()
-        audioBehavior(audio, stream, userId)
     })
     document.getElementById('audio-recipent').appendChild(audio)
 }
-function connectToNewUser(userId, stream) {
+function outgoingCall(userId, stream) {
     const call = myPeer.call(userId, stream)
     const audio = document.createElement('audio')
     call.on('stream', userAudioStream => {
@@ -68,20 +70,4 @@ function connectToNewUser(userId, stream) {
     })
     call.on('close', () => audio.remove())
     peers[userId] = call
-}
-function audioBehavior(audio, stream, userId) {
-    const context = new VCAudio(stream)
-    context.createAnalyser()
-    audio.addEventListener('timeupdate', () => {
-        let frecuency = context.getFrecuencyFromAnalyser()
-        if (frecuency >= .5) {
-            document.getElementById('audio-status-' + userId).classList.add('talking')
-            document.getElementById('icon-' + userId).innerHTML = 'T'
-        } else {
-            document.getElementById('icon-' + userId).innerHTML = 'M'
-            if (document.getElementById('audio-status-' + userId).classList.contains('talking')) {
-                document.getElementById('audio-status-' + userId).classList.remove('talking')
-            }
-        }
-    })
 }
