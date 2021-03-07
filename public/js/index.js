@@ -6,13 +6,22 @@ const myPeer = new Peer('', PEER_CONFIG)
 let me = {}
 const peers = {}
 
-const myAudio = document.createElement('audio')
+const myAudio = new Audio()
 myAudio.muted = true
 
+document.getElementById('connect').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim()
+    if (username.length > 0) {
+        me = {...me, name: username }
+        await init(username)
+        socket.emit('join', { roomId: ROOM_ID, ...me })
+        document.getElementById('choose-username').remove()
+    }
+})
 function incomingCall(stream) {
     myPeer.on('call', call => {
         call.answer(stream)
-        const audio = document.createElement('audio')
+        const audio = new Audio()
         call.on('stream', userAudioStream => {
             addAudioStream(audio, userAudioStream)
             socket.on('incoming-call', data => {
@@ -36,13 +45,7 @@ async function init(name) {
     onUserConnected(stream)
 }
 
-myPeer.on('open', async id => {
-    let name = await prompt("What's your name?")
-    await init(name)
-    me = { ...me, userId: id, name: name }
-    socket.emit('join', { roomId: ROOM_ID, userId: id, name: name })
-})
-
+myPeer.on('open', id => me = {...me, userId: id })
 
 socket.on('user-disconnected', data => {
     if (peers[data.userId]) {
@@ -62,14 +65,11 @@ function createAudioState(userId, name) {
 }
 function addAudioStream(audio, stream) {
     audio.srcObject = stream
-    audio.addEventListener('loadedmetadata', () => {
-        audio.play()
-    })
-    document.getElementById('audio-recipent').appendChild(audio)
+    audio.addEventListener('loadedmetadata', () => audio.play())
 }
 function outgoingCall(userId, stream) {
     const call = myPeer.call(userId, stream)
-    const audio = document.createElement('audio')
+    const audio = new Audio()
     call.on('stream', userAudioStream => {
         addAudioStream(audio, userAudioStream)
         socket.emit('outgoing-call', { ...me, ...{ toId: userId } })
