@@ -3,6 +3,7 @@ import getUserMedia from './usermedia.js'
 const socket = io()
 const myPeer = new Peer('', PEER_CONFIG)
 
+let me = {}
 const peers = {}
 
 const myAudio = document.createElement('audio')
@@ -14,7 +15,9 @@ function incomingCall(stream) {
         const audio = document.createElement('audio')
         call.on('stream', userAudioStream => {
             addAudioStream(audio, userAudioStream)
-            createAudioState(stream, call.connectionId)
+            socket.on('incoming-call', data => {
+                if (data.toId === me.userId) createAudioState(data.userId, data.name)
+            })
         })
         call.on('close', () => audio.remove())
     })
@@ -22,20 +25,22 @@ function incomingCall(stream) {
 function onUserConnected(stream) {
     socket.on('user-connected', data => {
         outgoingCall(data.userId, stream)
-        createAudioState(stream, data.userId)
+        createAudioState(data.userId, data.name)
     })
 }
-async function init() {
+async function init(name) {
     const stream = await getUserMedia()
     addAudioStream(myAudio, stream)
-    createAudioState(stream, 'me')
+    createAudioState(stream, name)
     incomingCall(stream)
     onUserConnected(stream)
 }
 
 myPeer.on('open', async id => {
-    await init()
-    socket.emit('join', { roomId: ROOM_ID, userId: id })
+    let name = await prompt("What's your name?")
+    await init(name)
+    me = { ...me, userId: id, name: name }
+    socket.emit('join', { roomId: ROOM_ID, userId: id, name: name })
 })
 
 
@@ -45,17 +50,17 @@ socket.on('user-disconnected', data => {
         peers[data.userId].close()
     }
 })
-function createAudioState(stream, userId) {
+function createAudioState(userId, name) {
     const audioStatus = document.createElement('div')
     audioStatus.id = `audio-status-${userId}`
     audioStatus.className = `me`
     const icon = document.createElement('p')
     icon.id = `icon-${userId}`
-    icon.innerHTML = 'M'
+    icon.innerHTML = name
     audioStatus.appendChild(icon)
     document.getElementById('client-list').appendChild(audioStatus)
 }
-function addAudioStream(audio, stream, userId = 'me') {
+function addAudioStream(audio, stream) {
     audio.srcObject = stream
     audio.addEventListener('loadedmetadata', () => {
         audio.play()
@@ -66,7 +71,8 @@ function outgoingCall(userId, stream) {
     const call = myPeer.call(userId, stream)
     const audio = document.createElement('audio')
     call.on('stream', userAudioStream => {
-        addAudioStream(audio, userAudioStream, userId)
+        addAudioStream(audio, userAudioStream)
+        socket.emit('outgoing-call', { ...me, ...{ toId: userId } })
     })
     call.on('close', () => audio.remove())
     peers[userId] = call

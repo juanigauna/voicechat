@@ -15,9 +15,12 @@ class Server {
             socket.on('join', data => {
                 let { roomId, userId } = data
                 socket.join(roomId)
-                socket.to(roomId).emit('user-connected', { userId: userId })
+                socket.to(roomId).emit('user-connected', { userId: userId, name: data.name })
                 socket.on('error', error => {
                     socket.to(roomId).emit('error', error)
+                })
+                socket.on('outgoing-call', call => {
+                    socket.to(roomId).emit('incoming-call', call)
                 })
                 socket.on('disconnect', () => {
                     socket.to(roomId).emit('user-disconnected', { userId: userId })
